@@ -17,7 +17,7 @@ class Controls
         int lastError = 0;
         int outputLowerLimit = -128;
         int outputUpperLimit =  128;
-        ControlType loopType = ControlType.P;
+        ControlType loopType = P;
 
     public: 
         Controls(int, int, int, ControlType, int, int  );
