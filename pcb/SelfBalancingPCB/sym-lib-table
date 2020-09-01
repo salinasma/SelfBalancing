@@ -1,3 +1,4 @@
 (sym_lib_table
   (lib (name SelfBalancing)(type Legacy)(uri /home/pramuka/src/SelfBalancing/SelfBalancingPCB/SelfBalancing.lib)(options "")(descr ""))
+  (lib (name SelfBalancingPCB-rescue)(type Legacy)(uri ${KIPRJMOD}/SelfBalancingPCB-rescue.lib)(options "")(descr ""))
 )
