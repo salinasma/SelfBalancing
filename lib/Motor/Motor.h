@@ -25,7 +25,9 @@ class Motor {
 
     protected:
         static int pwmChannelSelector;
-        int pwmA, pwmB, pwmChannelA, pwmChannelB; 
+        static int timerSelector;
+        int pwmA, pwmB, pwmChannelA, pwmChannelB, timerId; 
 };
 
 #endif
+

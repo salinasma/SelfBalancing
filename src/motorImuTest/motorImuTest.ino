@@ -20,10 +20,10 @@ void setup() {
   while (!Serial) {
     ;
   }
-  Serial.println ("Motor Test");
+  Serial.println ("Motor-IMU Integration Test");
 
-  left.rotate (150);
-  right.rotate (150);
+  left.rotate (100);
+  right.rotate (100);
 }
 
 int period;

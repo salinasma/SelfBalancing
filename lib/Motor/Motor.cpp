@@ -6,6 +6,7 @@
 #include "Motor.h"
 
 int Motor::pwmChannelSelector = 0;
+int Motor::timerSelector = 0;
 
 Motor::Motor (int pwmAPin, int pwmBPin) {
     pwmA = pwmAPin;
@@ -26,6 +27,9 @@ Motor::Motor (int pwmAPin, int pwmBPin) {
 
     digitalWrite (pwmA, 0);
     digitalWrite (pwmB, 0);
+
+    timerId = timerSelector;
+    timerSelector++;
 }
 
 void Motor::rotate (int pwmVal) {
