@@ -1,10 +1,10 @@
 #include "controls.hpp"
 
-    Controls:: Controls (int kp, int ki, int kd, ControlType loopType, int lowLimit, int highLimit) {
+    Controls:: Controls (double kp, double ki, double kd, ControlType loopType, int lowLimit, int highLimit) {
             this->kP = kp;
             this->kI = ki;
             this->kD = kd;
-            ControlType loopType = loopType;
+            this->loopType = loopType;
             this->lowerLimit = lowLimit;
             this->upperLimit = highLimit;
     }
@@ -14,29 +14,33 @@
         int error = targetPosition - currentReading;
 
         int derivative = this->lastError - error;
-        int controlValue = 0;
+        double controlValue = 0;
+
         this->integrator += error;
 
         switch (this->loopType) {
-            case P:
+            case p:
                 controlValue = this->kP * error;
-
             break;
 
-            case I:
+            case i:
                 controlValue += this->kI * this->integrator;
             break;
 
-            case D:
-            controlValue +=  (this->kD * derivative ) ; 
+            case d:
+                controlValue += this->kD * derivative; 
             break;
 
-            case PI:
-                controlValue = ( this->kI * this->integrator )  + ( this->kP * error) ;
+            case pi:
+                controlValue = (this->kP * error) + (this->kI * this->integrator);
             break;
 
-            case PID:
-                controlValue = ( this->kI * this->integrator )  + ( this->kP * error) + ( this->kD * derivative ) ;
+            case pd:
+                controlValue = (this->kP * error) + (this->kD * derivative);
+            break;
+
+            case pid:
+                controlValue = (this->kP * error) + (this->kI * this->integrator) + ( this->kD * derivative );
             break;
 
         }
@@ -46,7 +50,7 @@
         if ( controlValue > this->upperLimit)
             controlValue = this->upperLimit;
 
-        if ( controlValue > this->lowerLimit )
+        if ( controlValue < this->lowerLimit )
             controlValue = this->lowerLimit;
 
 

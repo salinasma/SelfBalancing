@@ -2,27 +2,30 @@
 #ifndef CONTROL_HEADERS
 #define CONTROL_HEADERS
 
+#include <Arduino.h>
+
 enum ControlType {
-    P, I , D, PI, PID
+    p, i, d, pi, pd, pid
 };
+
 class Controls
 {
     private:
-        int kP = 0;
-        int kI = 0;
-        int kD = 0;
+        double kP = 0;
+        double kI = 0;
+        double kD = 0;
         int integrator = 0;
         int lowerLimit = 0;
         int upperLimit = 0;
         int lastError = 0;
-        int outputLowerLimit = -128;
-        int outputUpperLimit =  128;
-        ControlType loopType = P;
+        int outputLowerLimit = 0;
+        int outputUpperLimit = 250;
+        ControlType loopType = p;
 
     public: 
-        Controls(int, int, int, ControlType, int, int  );
+        Controls(double, double, double, ControlType, int, int);
         int controlWorkLoop(int, int);
-}
+};
 
 
 #endif

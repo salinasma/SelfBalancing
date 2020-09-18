@@ -15,6 +15,9 @@ volatile int MotorL::avgPeriodB = 0;
 volatile int MotorL::tachBAggr = 0;
 volatile int MotorL::tachBSampleCount = 0;
 
+volatile int MotorL::tachLogger[TACH_LOGGER_SIZE] = {0};
+volatile int MotorL::tachLoggerIndex = 0;
+
 hw_timer_t* MotorL::tachSamplingTimer;
 
 MotorL::MotorL (int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSampleInterval) 
@@ -98,6 +101,11 @@ void IRAM_ATTR MotorL::tachSamplingTimerInterrupt (){
         avgPeriodA = tachAAggr / tachASampleCount;
         tachAAggr = 0;
         tachASampleCount = 0;
+
+        tachLoggerIndex++;
+        if (tachLoggerIndex < TACH_LOGGER_SIZE) {
+            tachLogger[tachLoggerIndex] = avgPeriodA;
+        }
     }
 
     if (tachBSampleCount != 0) {
