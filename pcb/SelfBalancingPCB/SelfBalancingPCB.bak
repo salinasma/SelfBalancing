@@ -1,6 +1,5 @@
 EESchema Schematic File Version 4
-LIBS:SelfBalancingPCB-cache
-EELAYER 26 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -70,21 +69,10 @@ F 3 "" H 2350 4950 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L SelfBalancingPCB-rescue:HiLetGo_MPU_6050_IMU-SelfBalancing U0
-U 1 1 5F0AA9BE
-P 2300 3350
-F 0 "U0" H 2250 3950 50  0000 L CNN
-F 1 "HiLetGo_MPU_6050_IMU" H 1850 3850 50  0000 L CNN
-F 2 "" H 950 4650 50  0001 C CNN
-F 3 "" H 950 4650 50  0001 C CNN
-	1    2300 3350
-	-1   0    0    -1  
-$EndComp
-$Comp
-L power:GNDREF #PWR?
+L power:GNDREF #PWR0101
 U 1 1 5F0B1E9D
 P 5800 6000
-F 0 "#PWR?" H 5800 5750 50  0001 C CNN
+F 0 "#PWR0101" H 5800 5750 50  0001 C CNN
 F 1 "GNDREF" H 5805 5827 50  0000 C CNN
 F 2 "" H 5800 6000 50  0001 C CNN
 F 3 "" H 5800 6000 50  0001 C CNN
@@ -116,8 +104,6 @@ GND
 Text GLabel 2900 3100 2    50   Input ~ 0
 GND
 Wire Wire Line
-	2800 3100 2900 3100
-Wire Wire Line
 	2800 4600 2900 4600
 Wire Wire Line
 	2800 4700 2900 4700
@@ -126,10 +112,10 @@ Wire Wire Line
 Wire Wire Line
 	8400 4700 8500 4700
 $Comp
-L power:+BATT #PWR?
+L power:+BATT #PWR0102
 U 1 1 5F0B301D
 P 5300 5800
-F 0 "#PWR?" H 5300 5650 50  0001 C CNN
+F 0 "#PWR0102" H 5300 5650 50  0001 C CNN
 F 1 "+BATT" H 5315 5973 50  0000 C CNN
 F 2 "" H 5300 5800 50  0001 C CNN
 F 3 "" H 5300 5800 50  0001 C CNN
@@ -206,80 +192,53 @@ Wire Wire Line
 	8400 5000 8500 5000
 Wire Wire Line
 	8400 2500 8500 2500
-Text GLabel 2900 3200 2    50   Input ~ 0
+Text GLabel 2900 3600 2    50   Input ~ 0
+GND
+Text GLabel 2900 3500 2    50   Input ~ 0
+NC
+Text GLabel 2900 3400 2    50   Input ~ 0
+NC
+Text GLabel 2900 3000 2    50   Input ~ 0
+3V3
+Text GLabel 6900 3200 2    50   Input ~ 0
 IMU_SCL
 Text GLabel 2900 3300 2    50   Input ~ 0
 IMU_SDA
-Text GLabel 6900 3200 2    50   Input ~ 0
-IMU_SCL
 Text GLabel 6900 3500 2    50   Input ~ 0
 IMU_SDA
-Text GLabel 2900 3000 2    50   Input ~ 0
-3V3
 Wire Wire Line
-	8400 4100 8500 4100
+	6800 3500 6900 3500
 Wire Wire Line
-	8400 4200 8500 4200
+	6800 3200 6900 3200
+Text GLabel 2900 3700 2    50   Input ~ 0
+INT
+Text GLabel 2900 3200 2    50   Input ~ 0
+IMU_SCL
 Wire Wire Line
-	8400 5100 8500 5100
-Wire Wire Line
-	8400 5200 8500 5200
-Text GLabel 8400 4800 0    50   Input ~ 0
-LEFT_TACH1
-Text GLabel 8400 4900 0    50   Input ~ 0
-LEFT_TACH2
-Text GLabel 8400 3800 0    50   Input ~ 0
-RIGHT_TACH1
-Text GLabel 8400 3900 0    50   Input ~ 0
-RIGHT_TACH2
-Wire Wire Line
-	8400 3800 8500 3800
-Wire Wire Line
-	8400 3900 8500 3900
-Wire Wire Line
-	8400 4800 8500 4800
-Wire Wire Line
-	8400 4900 8500 4900
-Text GLabel 9500 2700 2    50   Input ~ 0
-RIGHT_PWM1
-Text GLabel 9500 2800 2    50   Input ~ 0
-RIGHT_PWM2
-Text GLabel 9500 2900 2    50   Input ~ 0
-LEFT_PWM1
-Text GLabel 9500 3000 2    50   Input ~ 0
-LEFT_PWM2
-Wire Wire Line
-	9400 2700 9500 2700
-Wire Wire Line
-	9400 2800 9500 2800
-Wire Wire Line
-	9400 2900 9500 2900
-Wire Wire Line
-	9400 3000 9500 3000
-Wire Wire Line
-	2800 3200 2900 3200
+	2800 3700 2900 3700
 Wire Wire Line
 	2800 3300 2900 3300
 Wire Wire Line
+	2800 3200 2900 3200
+Wire Wire Line
 	2800 3000 2900 3000
 Wire Wire Line
-	6800 3200 6900 3200
+	2800 3500 2900 3500
 Wire Wire Line
-	6800 3500 6900 3500
-Text GLabel 4600 3800 0    50   Input ~ 0
-RIGHT_PWM1
-Text GLabel 4600 3700 0    50   Input ~ 0
-RIGHT_PWM2
-Text GLabel 4600 3900 0    50   Input ~ 0
-LEFT_PWM1
-Text GLabel 4600 4000 0    50   Input ~ 0
-LEFT_PWM2
+	2800 3400 2900 3400
 Wire Wire Line
-	4600 3700 4700 3700
+	2800 3600 2900 3600
 Wire Wire Line
-	4600 3800 4700 3800
-Wire Wire Line
-	4600 3900 4700 3900
-Wire Wire Line
-	4600 4000 4700 4000
+	2800 3100 2900 3100
+$Comp
+L SelfBalancingPCB-rescue:HiLetGo_MPU_6050_IMU-SelfBalancing U0
+U 1 1 5F0AA9BE
+P 2300 3350
+F 0 "U0" H 2250 3950 50  0000 L CNN
+F 1 "HiLetGo_MPU_6050_IMU" H 1850 3850 50  0000 L CNN
+F 2 "" H 950 4650 50  0001 C CNN
+F 3 "" H 950 4650 50  0001 C CNN
+	1    2300 3350
+	-1   0    0    -1  
+$EndComp
 $EndSCHEMATC
