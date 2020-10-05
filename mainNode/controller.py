@@ -17,19 +17,42 @@ class Mode(Enum):
 lastestUpdate = None
 params =  { "running": 0, "mode": 0, "PWMDuty": 0 }
 
+
 class Default(Controller):
   def GET(self):
     return "Hey"
-  #   return backend.show()
 
   def POST(self, **kwargs):
     function = kwargs["function"]
-    args = kwargs["args"]
+    # args = kwargs["args"]
 
     if "get_params" in function or "GET_PARAMS" in function:
-      # backend.add(args)
-      # backend.commit()
       return params
+
+    if "set_mosi" in function or "SET_MOSI" in function:
+      print(kwargs["args"])
+      if kwargs["args"]["running"]:
+        params["running"] =  1
+
+      else:
+        params["running"] =  0
+
+      return params
+
+
+
+    if "check_running" in function or "CHECK_RUNNING" in function:
+      if params["running"] is 0:
+        return "eslaf"
+      else:
+        return  "eurt"
+
+    if "miso" in function or "MISO" in function:
+      return params
+
+    if "MOSI" in function or "MOSI" in function:
+      return params
+
 
     if "setParams_params" in function or "GET_PARAMS" in function:
       # backend.add(args)
@@ -40,14 +63,3 @@ class Default(Controller):
       return lastestUpdate
  
       
-    # if "print" in function or "PRINT" in function or "show" in function:
-    #   return backend.show()
-
-    # if "CLOSE" in function or "close" in function:
-    #   backend.close()
-    #   return 'close'
-
-    # if "delete" in function:
-    #   backend.delete(args)
-    #   backend.commit()
-    #   return  'delete'
