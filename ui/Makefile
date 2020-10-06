@@ -15,4 +15,5 @@ run_web:
 
 
 backend:
-	clear; endpoints --prefix=controller --host=0.0.0.0:8000 
+	clear; endpoints --prefix=controller --host=localhost:8000
+	
