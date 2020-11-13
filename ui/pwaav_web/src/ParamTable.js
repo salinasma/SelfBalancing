@@ -1,0 +1,42 @@
+import React, { Component } from 'react';
+import './App.css';
+import {
+    Button,
+    Typography,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+} from '@material-ui/core';
+
+import ParamTableRow from './ParamTableRow'
+
+function ParamTable(props) {
+    return (
+        <TableContainer>
+            <Table aria-label="Parameters Table" size="small" maxWidth="500" minWidth="500">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>Parameter</TableCell>
+                        <TableCell>Current Value</TableCell>
+                        <TableCell>Set Value</TableCell>
+                    </TableRow>
+                </TableHead>
+        
+                <TableBody>
+                    {   
+                        Object.keys(props.paramReg).map(function(paramKey) {
+                            return (
+                                <ParamTableRow paramName={paramKey} paramVal={props.paramReg[paramKey]} paramEntryHandler={props.paramEntryHandler} paramUpdateHandler={props.paramUpdateHandler} />
+                            );
+                        })
+                    }
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+}
+
+export default ParamTable;

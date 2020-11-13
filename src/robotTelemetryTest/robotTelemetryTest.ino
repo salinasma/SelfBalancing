@@ -1,64 +1,140 @@
-#include <MotorL.h>
-#include <MotorR.h>
-#include <Imu.h>
-
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <string.h>
 
-#define RIGHT_PWM1 26
-#define RIGHT_PWM2 27
-#define RIGHT_TACH1 18
-#define RIGHT_TACH2 19
-#define RIGHT_TACH_SAMPLE_INTERVAL 1000 // microseconds
-
-#define LEFT_PWM1 25
-#define LEFT_PWM2 33
-#define LEFT_TACH1 34
-#define LEFT_TACH2 35
-#define LEFT_TACH_SAMPLE_INTERVAL 1000 // microseconds
-
-MotorL left (LEFT_PWM1, LEFT_PWM2, LEFT_TACH1, LEFT_TACH2, LEFT_TACH_SAMPLE_INTERVAL);
-MotorR right (RIGHT_PWM1, RIGHT_PWM2, RIGHT_TACH1, RIGHT_TACH2, RIGHT_TACH_SAMPLE_INTERVAL);
-
-Imu imu (32);
+#define NUM_PARAMS 2
+#define NUM_DATA 2
+#define JSON_BUFFER_SIZE 500
+#define IS_PARAM 1
 
 WiFiMulti wifiMulti;
 HTTPClient http;
 
-int lPeriod;
-int lFrequency = 0;
-int lPwm = 0;
+enum paramType {
+  INT = 0,
+  CHAR = 1,
+  BOOL = 2
+};
 
-int rPeriod;
-int rFrequency = 0;
-int rPwm = 0;
+typedef struct DataObject{
+  String dataName;
+  void *dataPtr;
+  int dataRegIndex;
+  int dataType;
+  int dataSize;
+} Data;
 
-void setup () {
-    Serial.begin (9600);
-    while (!Serial) {;}
+// Example variables
+int gobble = 42;
+char dataDump[500] = "23";
 
-    // Input your ssid and password here
-    wifiMulti.addAP ("ssid", "password"); 
+Data paramRegistry[NUM_PARAMS] = {
+{String("gobble"), &gobble, 0, INT, sizeof(gobble)},
+{String("dataDump500"), &dataDump, 1, CHAR, 500}
+};
+
+Data dataRegistry[NUM_DATA] = {
+{String("gobble"), &gobble, 0, INT, sizeof(gobble)},
+{String("dataDump500"), &dataDump, 1, CHAR, 500}
+};
+
+String jsonInitRegistry (int regSize, Data *registry, bool isParam) {
+  String jsonCmd = "{\"function\":\"botInitData\",\"numData\":\"" + (String)regSize + "\",";
+  String regType = "d";
+
+  if (isParam) {
+    jsonCmd = "{\"function\":\"botInitParams\",\"numParams\":\"" + (String)regSize + "\",";
+    regType = "p";
+  }
+  
+  for (int i = 0; i < regSize; i++) {
+    jsonCmd += " \"p" + (String)i + "\":";
+    jsonCmd += "{\"name\":\"" + (String)registry[i].dataName;
+    jsonCmd += "\", \"value\":\"" + (String)(*((int *)(registry[i].dataPtr)));
+    jsonCmd += "\", \"index\":\"" + (String)registry[i].dataRegIndex;
+    jsonCmd += "\", \"type\":\"" + (String)registry[i].dataType;
+    jsonCmd += "\", \"size\":\"" + (String)registry[i].dataSize;
+    jsonCmd += "\"}";
+
+    if (i < regSize - 1) {
+      jsonCmd += ", ";
+    }
+  }
     
-    left.rotate (70);
-    right.rotate (70);
+  jsonCmd += "}";
+
+  return jsonCmd;
 }
 
-String payload, runStr;
-int runVal;
+String jsonUpdateData (Data d) {
+  String jsonCmd = "{\"function\":\"botUpdateData\",";
+  
+  jsonCmd += "\"name\":\"" + (String)d.dataName;
+  jsonCmd += "\", \"value\":\"" + (String)(*((int *)(d.dataPtr)));
+  jsonCmd += "\"}"; 
 
+  return jsonCmd;
+}
+
+String jsonGetParam (Data param) {
+  String jsonCmd("{\"function\":\"botGetParam\",");
+  
+  jsonCmd += "\"name\":\"" + (String)param.dataName;
+  jsonCmd += "\"}"; 
+
+  return jsonCmd;
+}
+
+String jsonGetParams () {
+  String jsonCmd("{\"function\":\"botGetParams\"}");
+
+  return jsonCmd;
+}
+
+String jsonRxCmd () {
+  String jsonCmd("{\"function\":\"botRxCmd\"}");
+
+  return jsonCmd;
+}
+
+void setup () {
+    int httpCode;
+    
+    Serial.begin (9600);
+    while (!Serial);
+    
+    // Input your ssid and password here
+    wifiMulti.addAP ("ssid", "password"); 
+
+    // Init the server
+    while (wifiMulti.run() != WL_CONNECTED);
+    http.begin ("server ip address", 8000, "/");
+    
+    do {
+      http.addHeader ("Content-Type", "application/json");
+      httpCode = http.POST (jsonInitRegistry (NUM_PARAMS, paramRegistry, IS_PARAM));
+    } while (httpCode == 0);
+
+    do {
+      http.addHeader ("Content-Type", "application/json");
+      httpCode = http.POST (jsonInitRegistry (NUM_DATA, dataRegistry, !IS_PARAM));
+    } while (httpCode == 0);
+}
+      
+StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
+String payload;
 void loop () {
     // wait for WiFi connection
     if ((wifiMulti.run () == WL_CONNECTED)) {
-        Serial.print ("[HTTP] begin...\n");
-        // input your server's ip address here
-        http.begin ("ip address", 8000, "/");
-        
+        Serial.print ("[HTTP] begin...\n"); 
         Serial.print ("[HTTP] POST...\n");
-        http.addHeader ("Content-Type", "application/json");
         
-        int httpCode = http.POST ("{\n  \"function\":\"get_params\",\n  \"args\":{\"searchString\":\"Black\"}\n}");
+        http.addHeader ("Content-Type", "application/json");
+        String jsonUpdateCmd = jsonUpdateData (dataRegistry[0]);
+        int httpCode = http.POST (jsonUpdateCmd);
+        Serial.println (jsonUpdateCmd);
 
         // httpCode will be negative on error
         if (httpCode > 0) {
@@ -66,28 +142,65 @@ void loop () {
 
             // file found at server
             if (httpCode == HTTP_CODE_OK) {
-                String payload = http.getString();
+                payload = http.getString();
                 Serial.println(payload);
-
-                runStr = payload.substring (payload.indexOf("running\": ") + 10, payload.indexOf (","));
-                runVal = runStr.toInt();
-
-                if (runVal) {
-                  Serial.println("Running motors");
-                  left.rotate (80);
-                  right.rotate (80);
-                } else {
-                  Serial.println("Stopping motors");
-                  left.rotate (5);
-                  right.rotate (5);
-                }
             }
         } else {
             Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
         }
 
-        http.end ();
-    }
+        http.addHeader ("Content-Type", "application/json");
+        String jsonGetParamsCmd = jsonGetParams ();
+        httpCode = http.POST (jsonGetParamsCmd);
+        Serial.println (jsonGetParamsCmd);
 
+        // httpCode will be negative on error
+        if (httpCode > 0) {
+            Serial.printf("[HTTP] POST... code: %d\n", httpCode);
+
+            // file found at server
+            if (httpCode == HTTP_CODE_OK) {
+                payload = http.getString();
+                Serial.println(payload);
+            }
+            
+            JsonObject& root = jsonBuffer.parseObject(payload);
+            while (!root.success()){
+              JsonObject& root = jsonBuffer.parseObject(payload);
+            } 
+            // using C++98 syntax (for older compilers):
+            for (JsonObject::iterator it=root.begin(); it!=root.end(); ++it) {
+              Serial.println(it->key);
+              Serial.println(it->value.as<char*>());
+              int index = String(it->key).toInt();
+              int value = String((it->value).as<char *>()).toInt();
+              *((int *)(paramRegistry[index].dataPtr)) = value;
+            }
+            jsonBuffer.clear();
+        } else {
+            Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        }
+
+        http.addHeader ("Content-Type", "application/json");
+        String jsonUpdateParamsCmd = jsonInitRegistry (NUM_PARAMS, paramRegistry, IS_PARAM);
+        httpCode = http.POST (jsonUpdateParamsCmd);
+        Serial.println (jsonUpdateParamsCmd);
+
+        // httpCode will be negative on error
+        if (httpCode > 0) {
+            Serial.printf("[HTTP] POST... code: %d\n", httpCode);
+
+            // file found at server
+            if (httpCode == HTTP_CODE_OK) {
+                payload = http.getString();
+                Serial.println(payload);
+            }
+        } else {
+            Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        }
+//        http.end ();
+    }
+    
+    gobble++;
     delay (1000);
 }
