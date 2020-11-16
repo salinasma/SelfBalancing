@@ -5,10 +5,13 @@
 
 #include "TCClient.h"
 
-TCClient::TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress) {
+TCClient::TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, Data *dataReg) {
     wifiMulti.addAP(ssid, wifiPassword);
     while (wifiMulti.run() != WL_CONNECTED); 
     http.begin(serverAddress, SERVER_PORT, "/");
+
+    paramRegistry = paramReg;
+    dataRegistry = dataReg;
 }
 
 void TCClient::addParam(String name, void *ptrToParam, int type, int size) { 
@@ -28,7 +31,7 @@ void TCClient::addParam(String name, void *ptrToParam, int type, int size) {
 }   
 
 void TCClient::addData(String name, void *ptrToData, int type, int size) { 
-    if (dataRegIndex > NUM_PARAMS) {
+    if (dataRegIndex > NUM_DATA) {
         return;
     }
 
@@ -43,11 +46,11 @@ void TCClient::addData(String name, void *ptrToData, int type, int size) {
     return;
 }   
 
-int TCClient::postInitParamRegistry() {
+int TCClient::postInitParamRegistry(int numParams) {
     int httpCode;
-    String jsonCmd = "{\"function\":\"botInitParams\",\"numParams\":\"" + (String)NUM_PARAMS + "\",";
+    String jsonCmd = "{\"function\":\"botInitParams\",\"numParams\":\"" + (String)numParams + "\",";
   
-    for (int i = 0; i < NUM_PARAMS; i++) {
+    for (int i = 0; i < numParams; i++) {
       jsonCmd += " \"p" + (String)i + "\":";
       jsonCmd += "{\"name\":\"" + (String)paramRegistry[i].dataName;
       jsonCmd += "\", \"value\":\"" + (String)(*((int *)(paramRegistry[i].dataPtr)));
@@ -56,7 +59,7 @@ int TCClient::postInitParamRegistry() {
       jsonCmd += "\", \"size\":\"" + (String)paramRegistry[i].dataSize;
       jsonCmd += "\"}";
   
-      if (i < NUM_PARAMS - 1) {
+      if (i < numParams - 1) {
         jsonCmd += ", ";
       }
     }
@@ -68,11 +71,11 @@ int TCClient::postInitParamRegistry() {
     return httpCode;
 }
 
-int TCClient::postInitDataRegistry() {
+int TCClient::postInitDataRegistry(int numData) {
     int httpCode;
-    String jsonCmd = "{\"function\":\"botInitData\",\"numData\":\"" + (String)NUM_DATA + "\",";
+    String jsonCmd = "{\"function\":\"botInitData\",\"numData\":\"" + (String)numData + "\",";
   
-    for (int i = 0; i < NUM_DATA; i++) {
+    for (int i = 0; i < numData; i++) {
       jsonCmd += " \"d" + (String)i + "\":";
       jsonCmd += "{\"name\":\"" + (String)dataRegistry[i].dataName;
       jsonCmd += "\", \"value\":\"" + (String)(*((int *)(dataRegistry[i].dataPtr)));
@@ -81,7 +84,7 @@ int TCClient::postInitDataRegistry() {
       jsonCmd += "\", \"size\":\"" + (String)dataRegistry[i].dataSize;
       jsonCmd += "\"}";
   
-      if (i < NUM_DATA - 1) {
+      if (i < numData - 1) {
         jsonCmd += ", ";
       }
     }

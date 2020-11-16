@@ -43,19 +43,19 @@ typedef struct DataObject{
 
 class TCClient {
     public:
-        TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress);
+        TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, Data *dataReg);
             
         void addParam(String name, void *ptrToParam, int type, int size);  
         
         void addData(String name, void *ptrToData, int type, int size); 
         
-        int postInitParamRegistry ();
+        int postInitParamRegistry(int numParams);
 
-        int postInitDataRegistry ();
+        int postInitDataRegistry(int numData);
         
         int postUpdateData(int dataRegIndex); 
         
-        int postGetParam (int paramRegIndex); 
+        int postGetParam(int paramRegIndex); 
         
         int postGetParams(); 
         
@@ -69,10 +69,10 @@ class TCClient {
         WiFiMulti wifiMulti;
         HTTPClient http;
 
-        Data paramRegistry[NUM_PARAMS] = {};
+        Data *paramRegistry;
         int paramRegIndex = 0;
         
-        Data dataRegistry[NUM_DATA] = {};
+        Data *dataRegistry;
         int dataRegIndex = 0;
 
 };

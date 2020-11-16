@@ -1,8 +1,5 @@
-import React, { Component } from 'react';
-import './App.css';
+import React from 'react';
 import {
-    Button,
-    TextField,
     Typography,
     Table,
     TableBody,
@@ -11,10 +8,6 @@ import {
     TableHead,
     TableRow,
 } from '@material-ui/core';
-import { 
-    makeStyles, 
-    withStyles 
-} from '@material-ui/core/styles';
 
 import DataTableRow from './DataTableRow'
 
@@ -31,6 +24,7 @@ function DataTable(props) {
         
                 <TableBody>
                     {   
+                        /* Generate a table row for each piece of data in the system */
                         Object.keys(props.dataReg).map(function(dataKey) {
                             return (
                                 <DataTableRow dataName={dataKey} dataVal={props.dataReg[dataKey]} />

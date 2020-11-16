@@ -1,36 +1,22 @@
 import React, { Component } from 'react';
 import './App.css';
 import {
-    Button,
-    TextField,
-    Card,
     Grid,
+    Card,
     CardContent,
-    CardMedia,
     Typography,
-    CardActions,
-    Switch,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
 } from '@material-ui/core';
+import ParamTable from './ParamTable';
+import DataTable from './DataTable';
+import RefreshButton from './RefreshButton';
+
 import { 
     makeStyles, 
     withStyles 
 } from '@material-ui/core/styles';
 
-import ParamTable from './ParamTable';
-import DataTable from './DataTable';
-import RefreshButton from './RefreshButton';
 
-const networkAddress = "server address:8000/"
+const networkAddress = "" 
 var address = networkAddress
 
 class App extends Component {
@@ -38,9 +24,9 @@ class App extends Component {
         super(props);
         this.state = {
             state: null,
-            dataVals: {"exampleData": 3},       
-            paramVals: {"exampleData": 3},       
-            setParamVals: {"exampleData": 3}
+            dataVals: {},       
+            paramVals: {},       
+            setParamVals: {}
         };
     }
 
@@ -95,7 +81,7 @@ class App extends Component {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({  "function": "uiUpdateParam",
                                     "name": paramKey,
-                                    "value": this.state.paramVals[paramKey] 
+                                    "value": this.state.setParamVals[paramKey] 
                                  })
         });
         console.log(res);
@@ -156,7 +142,7 @@ class App extends Component {
                     <Grid item xs={12} xl={3} l={3}>
                         <Card>
                             <CardContent>
-                                <Typography variant="h5" component="h1" color='primary' >Graphs</Typography>
+                                <Typography align="center" variant="h5" component="h1" color='primary' >Graphs</Typography>
                             </CardContent>
                         </Card>
                     </Grid>

@@ -1,5 +1,4 @@
-import React, { Component } from 'react';
-import './App.css';
+import React from 'react';
 import {
     TableRow,
     TableCell,

@@ -1,5 +1,4 @@
-import React, { Component } from 'react';
-import './App.css';
+import React from 'react';
 import {
     Button,
     Typography,
@@ -29,6 +28,7 @@ function ParamTable(props) {
                     {   
                         Object.keys(props.paramReg).map(function(paramKey) {
                             return (
+                                /* Generate a table row for each piece of data in the system */
                                 <ParamTableRow paramName={paramKey} paramVal={props.paramReg[paramKey]} paramEntryHandler={props.paramEntryHandler} paramUpdateHandler={props.paramUpdateHandler} />
                             );
                         })
