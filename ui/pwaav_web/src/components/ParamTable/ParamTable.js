@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-    Button,
-    Typography,
     Table,
     TableBody,
     TableCell,
@@ -10,7 +8,7 @@ import {
     TableRow,
 } from '@material-ui/core';
 
-import ParamTableRow from './ParamTableRow'
+import ParamTableRow from './ParamTableRow/ParamTableRow'
 
 function ParamTable(props) {
     return (

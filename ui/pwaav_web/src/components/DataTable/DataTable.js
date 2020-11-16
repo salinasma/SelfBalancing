@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    Typography,
     Table,
     TableBody,
     TableCell,
@@ -9,7 +8,7 @@ import {
     TableRow,
 } from '@material-ui/core';
 
-import DataTableRow from './DataTableRow'
+import DataTableRow from './DataTableRow/DataTableRow'
 
 function DataTable(props) {
     return (

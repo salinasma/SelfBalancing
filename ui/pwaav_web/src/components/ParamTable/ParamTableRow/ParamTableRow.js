@@ -2,12 +2,10 @@ import React from 'react';
 import {
     TableRow,
     TableCell,
-    Typography,
-    TextField,
 } from '@material-ui/core';
 
-import SetButton from './SetButton'
-import ParamEntryField from './ParamEntryField'
+import SetButton from '../../../elements/SetButton/SetButton'
+import ParamEntryField from './ParamEntryField/ParamEntryField'
 
 function ParamTableRow(props) {
     return (

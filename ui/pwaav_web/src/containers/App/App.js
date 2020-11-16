@@ -6,24 +6,16 @@ import {
     CardContent,
     Typography,
 } from '@material-ui/core';
-import ParamTable from './ParamTable';
-import DataTable from './DataTable';
-import RefreshButton from './RefreshButton';
-
-import { 
-    makeStyles, 
-    withStyles 
-} from '@material-ui/core/styles';
-
-
-const networkAddress = "" 
-var address = networkAddress
+import ParamTable from '../../components/ParamTable/ParamTable';
+import DataTable from '../../components/DataTable/DataTable';
+import RefreshButton from '../../elements/RefreshButton/RefreshButton';
 
 class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
             state: null,
+            address: "networkAddress",
             dataVals: {},       
             paramVals: {},       
             setParamVals: {}
@@ -31,8 +23,8 @@ class App extends Component {
     }
 
     async getData() {
-        console.log(address);
-        var res = await fetch(new URL(address), {
+        console.log(this.state.address);
+        var res = await fetch(new URL(this.state.address), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({"function": "uiGetData"})
@@ -53,8 +45,8 @@ class App extends Component {
     }
 
     async getParams() {
-        console.log(address)
-        var res = await fetch(new URL(address), {
+        console.log(this.state.address)
+        var res = await fetch(new URL(this.state.address), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({"function": "uiGetParams"})
@@ -75,8 +67,8 @@ class App extends Component {
     }
 
     async updateParam(paramKey) {
-        console.log(address)
-        var res = await fetch(new URL(address), {
+        console.log(this.state.address)
+        var res = await fetch(new URL(this.state.address), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({  "function": "uiUpdateParam",

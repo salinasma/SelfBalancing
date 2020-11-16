@@ -2,8 +2,6 @@ import React from 'react';
 import {
     TableRow,
     TableCell,
-    Typography,
-    TextField,
 } from '@material-ui/core';
 
 function DataTableRow(props) {
