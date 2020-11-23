@@ -18,14 +18,14 @@ volatile int MotorL::tachBSampleCount = 0;
 volatile int MotorL::tachLogger[TACH_LOGGER_SIZE] = {0};
 volatile int MotorL::tachLoggerIndex = 0;
 
-hw_timer_t* MotorL::tachSamplingTimer;
+//hw_timer_t* MotorL::tachSamplingTimer;
 
 MotorL::MotorL (int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSampleInterval) 
 : Motor {pwmAPin, pwmBPin} {
   pinMode (tachAPin, INPUT);
   pinMode (tachBPin, INPUT);
   
-  tachSamplingTimer = timerBegin (timerId, 80, true); // each timer tick is 1 us
+//  tachSamplingTimer = timerBegin (timerId, 80, true); // each timer tick is 1 us
 
   // put interrupt and noInterrupt around all the init code
   noInterrupts ();
@@ -33,9 +33,9 @@ MotorL::MotorL (int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSa
       attachInterrupt (digitalPinToInterrupt (tachAPin), tachAInterruptHandler, RISING);
       attachInterrupt (digitalPinToInterrupt (tachBPin), tachBInterruptHandler, RISING);
     
-      timerAttachInterrupt (tachSamplingTimer, &tachSamplingTimerInterrupt, true);
-      timerAlarmWrite (tachSamplingTimer, tachSampleInterval, true);
-      timerAlarmEnable (tachSamplingTimer);
+//      timerAttachInterrupt (tachSamplingTimer, &tachSamplingTimerInterrupt, true);
+//      timerAlarmWrite (tachSamplingTimer, tachSampleInterval, true);
+//      timerAlarmEnable (tachSamplingTimer);
 
   interrupts ();
 }
@@ -57,41 +57,56 @@ int MotorL::getAvgPeriodB (void) {
 }
 
 void IRAM_ATTR MotorL::tachAInterruptHandler (void) {
-     static int lastTime = 0;
-     int currentTime;
+    static int lastTime = micros();
+    static int tickCount = 0;
+    static int rotationCount = 0;
 
-     noInterrupts ();
-
-         // set to some timer's current val
-         currentTime = micros ();
-
-         instPeriodA = currentTime - lastTime; 
-         tachAAggr += instPeriodA;
-         tachASampleCount++;
-
-         lastTime = currentTime;
-
-     interrupts ();
-  
-     return;
-}
-
-void IRAM_ATTR MotorL::tachBInterruptHandler (void) {
-    static int lastTime = 0;
-    // set to some timer's current val
     int currentTime;
-         
+
     noInterrupts ();
 
-        currentTime = micros ();
+        tickCount++;
 
-        instPeriodB = currentTime - lastTime; 
-        tachBAggr += instPeriodB;
-        tachBSampleCount++;
-
-        lastTime = currentTime;
+        if (tickCount == 12) {
+            currentTime = micros();
+    
+            instPeriodA = currentTime - lastTime; 
+            tachAAggr += instPeriodA;
+            tachASampleCount++;
+    
+            lastTime = currentTime;
+            
+            tickCount = 0;
+        }
 
     interrupts ();
+  
+    return;
+}
+
+void IRAM_ATTR MotorL::tachBInterruptHandler(void) {
+    static int lastTime = micros();
+    static int tickCount = 0;
+    static int rotationCount = 0;
+
+    int currentTime;
+         
+    noInterrupts();
+        tickCount++;
+
+        if (tickCount == 12) {
+            currentTime = micros();
+
+            instPeriodB = currentTime - lastTime; 
+            tachBAggr += instPeriodB;
+            tachBSampleCount++;
+
+            lastTime = currentTime;
+            
+            tickCount = 0;
+        }
+
+    interrupts();
   
     return;
 }

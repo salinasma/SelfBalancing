@@ -15,9 +15,10 @@ class App extends Component {
         super(props);
         this.state = {
             state: null,
-            address: "networkAddress",
+            address: "",
             dataVals: {},       
             paramVals: {},       
+            paramTypes: {},       
             setParamVals: {}
         };
     }
@@ -45,7 +46,7 @@ class App extends Component {
     }
 
     async getParams() {
-        console.log(this.state.address)
+        console.log(this.state.address);
         var res = await fetch(new URL(this.state.address), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -56,24 +57,48 @@ class App extends Component {
         console.log(response);
 
         const newParamVals = { ...this.state.paramVals };
+        console.log(newParamVals);
+        const newParamTypes = { ...this.state.paramTypes };
+        console.log(newParamTypes);
         Object.keys(response).forEach(function(key) {
-            newParamVals[key] = response[key];
+            newParamVals[key] = response[key]['value'];
+            newParamTypes[key] = parseInt(response[key]['dataType']);
         });
 
         this.setState({ 
             state: response,
-            paramVals: newParamVals
+            paramVals: newParamVals,
+            paramTypes: newParamTypes,
         });
     }
 
     async updateParam(paramKey) {
-        console.log(this.state.address)
+        var paramVal = 0;
+
+        switch (this.state.paramTypes[paramKey]) {
+            // Int
+            case 0:
+                paramVal = this.state.setParamVals[paramKey];
+                break;
+                
+            // Double
+            case 1:
+                paramVal = Math.trunc(parseFloat(this.state.setParamVals[paramKey]) * 1000);
+                break;
+
+            default:
+                paramVal = -1;
+                break;
+        }
+        console.log("paramVal ", paramVal);
+
+        console.log(this.state.address);
         var res = await fetch(new URL(this.state.address), {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({  "function": "uiUpdateParam",
                                     "name": paramKey,
-                                    "value": this.state.setParamVals[paramKey] 
+                                    "value": paramVal
                                  })
         });
         console.log(res);
@@ -104,6 +129,7 @@ class App extends Component {
                             <CardContent>
                                 <Typography align="center" variant="h5" component="h1" color='primary' >Programmable Parameters</Typography>
                                 <ParamTable 
+                                    paramTypes={this.state.paramTypes} 
                                     paramReg={this.state.paramVals} 
                                     paramEntryHandler={this.paramEntryHandler.bind(this)} 
                                     paramUpdateHandler={this.updateParam.bind(this)}

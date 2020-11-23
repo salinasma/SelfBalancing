@@ -4,10 +4,6 @@ import json
 from json import JSONEncoder
 from enum import Enum
 
-class paramType(Enum):
-    INT = 0
-    STRING = 1
-
 class RobotState():
     def __init__(self, name, value, index, pType, size):
         self.paramNames = {name : name} 
@@ -33,11 +29,11 @@ class RobotState():
         self.paramSizes.update({name : size}) 
 
     def addData(self, name, value, index, pType, size):
-        self.dataNames = {name : name} 
-        self.dataVals = {name : value} 
-        self.dataIndexes = {name : index} 
-        self.dataTypes = {name : pType} 
-        self.dataSizes = {name : size} 
+        self.dataNames.update({name : name})
+        self.dataVals.update({name : value}) 
+        self.dataIndexes.update({name : index})
+        self.dataTypes.update({name : pType}) 
+        self.dataSizes.update({name : size}) 
 
     def updateParamVal(self, name, value):
         self.paramVals.update({name : value}) 
@@ -62,7 +58,7 @@ class RobotState():
     def rxCmd(self):
         return json.dump({"cmd": self.cmdQ.pop(0)})
 
-registry = RobotState("example", 42, -1, paramType.INT, 4)
+registry = RobotState("example", 42, -1, 0, 4) # The 0 indicates type INT
 
 class Default(Controller):
   def GET(self):
@@ -73,8 +69,8 @@ class Default(Controller):
 
     if "botInitParams" in function:
         for i in range(0, int(kwargs["numParams"])):
-          registry.addParam(kwargs["p" + str(i)]["name"], kwargs["p" + str(i)]["value"], kwargs["p" + str(i)]["index"], kwargs["p" + str(i)]["type"], kwargs["p" + str(i)]["size"])
-            
+            registry.addParam(kwargs["p" + str(i)]["name"], (int)(kwargs["p" + str(i)]["value"]), kwargs["p" + str(i)]["index"], kwargs["p" + str(i)]["type"], kwargs["p" + str(i)]["size"])
+
         return registry.paramVals
 
     if "botGetParams" in function:
@@ -96,23 +92,17 @@ class Default(Controller):
     if "botUpdateData" in function:
         registry.updateDataVal(kwargs["name"], kwargs["value"])
 
-        tempDict = registry.dataVals.copy()
-
-#        if checkParamUpdateQ():
-#            tempDict.update({"areParamUpdatesAvailable": 1}
-
         return registry.dataVals
 
     if "botRxCmd" in function:
-        tempDict = {"cmd": registry.rxCmd()}
-#        if checkParamUpdateQ():
-#            tempDict.update({"areParamUpdatesAvailable": 1})
-
-#        return json.dumps({"cmd": registry.rxCmd()})
-        return tempDict 
+        return json.dumps({"cmd": registry.rxCmd()})
 
     if "uiGetParams" in function:
-        return registry.paramVals
+        tempDict = {}
+        for key in registry.paramVals.keys():
+            tempDict.update({key: {"value": registry.paramVals[key], "dataType": registry.paramTypes[key]}})
+
+        return  tempDict 
 
     if "uiUpdateParam" in function:
         registry.updateParamQ(kwargs["name"], kwargs["value"])

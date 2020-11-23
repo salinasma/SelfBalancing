@@ -13,7 +13,7 @@ import ParamTableRow from './ParamTableRow/ParamTableRow'
 function ParamTable(props) {
     return (
         <TableContainer>
-            <Table aria-label="Parameters Table" size="small" maxWidth="500" minWidth="500">
+            <Table aria-label="Parameters Table" size="small">
                 <TableHead>
                     <TableRow>
                         <TableCell>Parameter</TableCell>
@@ -27,7 +27,7 @@ function ParamTable(props) {
                         Object.keys(props.paramReg).map(function(paramKey) {
                             return (
                                 /* Generate a table row for each piece of data in the system */
-                                <ParamTableRow paramName={paramKey} paramVal={props.paramReg[paramKey]} paramEntryHandler={props.paramEntryHandler} paramUpdateHandler={props.paramUpdateHandler} />
+                                <ParamTableRow paramName={paramKey} paramType={props.paramTypes[paramKey]} paramVal={props.paramReg[paramKey]} paramEntryHandler={props.paramEntryHandler} paramUpdateHandler={props.paramUpdateHandler} />
                             );
                         })
                     }

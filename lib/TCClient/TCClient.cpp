@@ -5,65 +5,52 @@
 
 #include "TCClient.h"
 
-TCClient::TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, Data *dataReg) {
+TCClient::TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, int paramRegSize, Data *dataReg, int dataRegSize) {
     wifiMulti.addAP(ssid, wifiPassword);
     while (wifiMulti.run() != WL_CONNECTED); 
     http.begin(serverAddress, SERVER_PORT, "/");
 
     paramRegistry = paramReg;
     dataRegistry = dataReg;
+
+    this->paramRegSize = paramRegSize;
+    this->dataRegSize = dataRegSize;
 }
 
-void TCClient::addParam(String name, void *ptrToParam, int type, int size) { 
-    if (paramRegIndex > NUM_PARAMS) {
-        return;
-    }
-    
-    paramRegistry[paramRegIndex].dataName = name;
-    paramRegistry[paramRegIndex].dataPtr = ptrToParam;
-    paramRegistry[paramRegIndex].dataRegIndex = paramRegIndex;
-    paramRegistry[paramRegIndex].dataType = type;
-    paramRegistry[paramRegIndex].dataSize = size;
-
-    paramRegIndex++;
-
-    return;
-}   
-
-void TCClient::addData(String name, void *ptrToData, int type, int size) { 
-    if (dataRegIndex > NUM_DATA) {
-        return;
-    }
-
-    dataRegistry[dataRegIndex].dataName = name;
-    dataRegistry[dataRegIndex].dataPtr = ptrToData;
-    dataRegistry[dataRegIndex].dataRegIndex = dataRegIndex;
-    dataRegistry[dataRegIndex].dataType = type;
-    dataRegistry[dataRegIndex].dataSize = size;
-
-    dataRegIndex++;
-
-    return;
-}   
-
-int TCClient::postInitParamRegistry(int numParams) {
+// POST Request to push the parameters from the robot to the server and ui
+int TCClient::postInitParamRegistry() {
     int httpCode;
-    String jsonCmd = "{\"function\":\"botInitParams\",\"numParams\":\"" + (String)numParams + "\",";
+    String jsonCmd = "{\"function\":\"botInitParams\",\"numParams\":\"" + (String)paramRegSize + "\",";
   
-    for (int i = 0; i < numParams; i++) {
-      jsonCmd += " \"p" + (String)i + "\":";
-      jsonCmd += "{\"name\":\"" + (String)paramRegistry[i].dataName;
-      jsonCmd += "\", \"value\":\"" + (String)(*((int *)(paramRegistry[i].dataPtr)));
-      jsonCmd += "\", \"index\":\"" + (String)paramRegistry[i].dataRegIndex;
-      jsonCmd += "\", \"type\":\"" + (String)paramRegistry[i].dataType;
-      jsonCmd += "\", \"size\":\"" + (String)paramRegistry[i].dataSize;
+    for (int i = 0; i < paramRegSize; i++) {
+      jsonCmd += " \"p" + String(i) + "\":";
+      jsonCmd += "{\"name\":\"" + String(paramRegistry[i].dataName);
+      switch (paramRegistry[i].dataType) {
+          case INT:
+            jsonCmd += "\", \"value\":\"" + String(*((int *)(paramRegistry[i].dataPtr)));
+            break;
+
+          case DOUBLE:
+            // convert from float to fixed point
+            jsonCmd += "\", \"value\":\"" + String((int)((*((double *)(paramRegistry[i].dataPtr))) * FIXED_POINT_CONVERSION_CONSTANT));
+            break;
+
+          default:
+            jsonCmd += "\", \"value\":\"" + String(-1);
+            break;
+      };
+      jsonCmd += "\", \"index\":\"" + String(paramRegistry[i].dataRegIndex);
+      jsonCmd += "\", \"type\":\"" + String(paramRegistry[i].dataType);
+      jsonCmd += "\", \"size\":\"" + String(paramRegistry[i].dataSize);
       jsonCmd += "\"}";
   
-      if (i < numParams - 1) {
+      if (i < paramRegSize - 1) {
         jsonCmd += ", ";
       }
     }
     jsonCmd += "}";
+
+    Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -71,11 +58,12 @@ int TCClient::postInitParamRegistry(int numParams) {
     return httpCode;
 }
 
-int TCClient::postInitDataRegistry(int numData) {
+// POST Request to push the data from the robot to the server and ui
+int TCClient::postInitDataRegistry() {
     int httpCode;
-    String jsonCmd = "{\"function\":\"botInitData\",\"numData\":\"" + (String)numData + "\",";
+    String jsonCmd = "{\"function\":\"botInitData\",\"numData\":\"" + (String)dataRegSize + "\",";
   
-    for (int i = 0; i < numData; i++) {
+    for (int i = 0; i < dataRegSize; i++) {
       jsonCmd += " \"d" + (String)i + "\":";
       jsonCmd += "{\"name\":\"" + (String)dataRegistry[i].dataName;
       jsonCmd += "\", \"value\":\"" + (String)(*((int *)(dataRegistry[i].dataPtr)));
@@ -84,26 +72,31 @@ int TCClient::postInitDataRegistry(int numData) {
       jsonCmd += "\", \"size\":\"" + (String)dataRegistry[i].dataSize;
       jsonCmd += "\"}";
   
-      if (i < numData - 1) {
+      if (i < dataRegSize - 1) {
         jsonCmd += ", ";
       }
     }
     jsonCmd += "}";
 
+    Serial.println(jsonCmd);
+
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
     
     return httpCode;
 }
 
+// POST request to push new data to the server and ui
 int TCClient::postUpdateData(int dataRegIndex) {
     int httpCode;
     Data d = dataRegistry[dataRegIndex];
 
     String jsonCmd = "{\"function\":\"botUpdateData\",";
-    jsonCmd += "\"name\":\"" + (String)d.dataName;
-    jsonCmd += "\", \"value\":\"" + (String)(*((int *)(d.dataPtr)));
+    jsonCmd += "\"name\":\"" + String(d.dataName);
+    jsonCmd += "\", \"value\":\"" + String(*((int *)(d.dataPtr)));
     jsonCmd += "\"}";
+    
+    Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -111,13 +104,16 @@ int TCClient::postUpdateData(int dataRegIndex) {
     return httpCode;
 }
 
+// POST request to get a specific parameter value from the server
 int TCClient::postGetParam(int paramRegIndex) {
     int httpCode;
-    Data param = dataRegistry[dataRegIndex];
+    Data p = paramRegistry[paramRegIndex];
 
     String jsonCmd("{\"function\":\"botGetParam\",");
-    jsonCmd += "\"name\":\"" + (String)param.dataName;
+    jsonCmd += "\"name\":\"" + (String)p.dataName;
     jsonCmd += "\"}";
+
+    Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -125,19 +121,25 @@ int TCClient::postGetParam(int paramRegIndex) {
     return httpCode;
 }
 
+// POST request to get all the parameter values from the server
 int TCClient::postGetParams() {
     int httpCode;
     String jsonCmd("{\"function\":\"botGetParams\"}");
 
+    Serial.println(jsonCmd);
+
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
     
     return httpCode;
 }
 
+// POST request to get a command from the server
 int TCClient::postRxCmd() {
     int httpCode;
     String jsonCmd("{\"function\":\"botRxCmd\"}");
+
+    Serial.println(jsonCmd);
     
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -154,20 +156,21 @@ bool TCClient::isConnectedToWifi() {
 }
 
 void TCClient::parseJSONResponse(int httpCode, int postCmdId) {
-    static StaticJsonBuffer<JSON_BUFFER_SIZE> jsonBuffer;
-    JsonObject::iterator it;
+    static StaticJsonDocument<JSON_BUFFER_SIZE> jsonDoc;
+    static JsonObject::iterator it;
     String payload;
 
     // httpCode will be negative on error
     if (httpCode > 0) {
         Serial.printf("[HTTP] POST... code: %d\n", httpCode);
     
-        // file found at server
         if (httpCode == HTTP_CODE_OK) {
             payload = http.getString();
             Serial.println(payload);
         }
-        JsonObject& root = jsonBuffer.parseObject(payload);
+        
+        deserializeJson(jsonDoc, payload);
+        JsonObject res = jsonDoc.as<JsonObject>();
 
         switch (postCmdId) {
             case INIT_PARAMS:
@@ -177,19 +180,29 @@ void TCClient::parseJSONResponse(int httpCode, int postCmdId) {
                 break;
 
             case GET_PARAMS:
-
                 // write new params to param variables
-                for (it = root.begin(); it != root.end(); ++it) {
-                  Serial.println(it->key);
-                  Serial.println(it->value.as<char*>());
+                for (it = res.begin(); it != res.end(); ++it) {
+                  int index = String(it->key().c_str()).toInt();
+                  int value = it->value().as<signed int>();
 
-                  int index = String(it->key).toInt();
-                  int value = String((it->value).as<char *>()).toInt();
+                  Serial.println(index + ": " + value);
 
-                  *((int *)(paramRegistry[index].dataPtr)) = value;
+                  switch (paramRegistry[index].dataType) {
+                      case INT:
+                        *((int *)(paramRegistry[index].dataPtr)) = value;
+                        break;
+
+                      case DOUBLE:
+                        // convert from fixed point to float
+                        *((double *)(paramRegistry[index].dataPtr)) = double(value) / FIXED_POINT_CONVERSION_CONSTANT;
+                        break;
+
+                      default:
+                        break;
+                  };
                 }
 
-                jsonBuffer.clear();
+                jsonDoc.clear();
                 break;
 
             case UPDATE_DATA:

@@ -17,7 +17,8 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
 
-  botClient = new TCClient("ssid", "pass", "serverAddress", paramReg, dataReg);
+  botClient = new TCClient("ssid", "password", "address", paramReg, dataReg);
+  Serial.println("Hello");
 
   do {
     httpCode = botClient->postInitParamRegistry(NUM_PARAMS);

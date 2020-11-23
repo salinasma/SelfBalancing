@@ -11,9 +11,6 @@ enum ControlType {
 class Controls
 {
     private:
-        double kP = 0;
-        double kI = 0;
-        double kD = 0;
         int integrator = 0;
         int lowerLimit = 0;
         int upperLimit = 0;
@@ -23,6 +20,10 @@ class Controls
         ControlType loopType = p;
 
     public: 
+        double kP = 0;
+        double kI = 0;
+        double kD = 0;
+
         Controls(double, double, double, ControlType, int, int);
         int controlWorkLoop(int, int);
 };

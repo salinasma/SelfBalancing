@@ -13,15 +13,13 @@
 #include <ArduinoJson.h>
 
 #define SERVER_PORT 8000
-#define NUM_PARAMS 2
-#define NUM_DATA 2
 #define JSON_BUFFER_SIZE 500
 #define IS_PARAM 1
+#define FIXED_POINT_CONVERSION_CONSTANT double(1000.0)
 
 enum paramType{
   INT = 0,
-  CHAR = 1,
-  BOOL = 2
+  DOUBLE = 1
 };
 
 enum postCmdType{
@@ -43,15 +41,15 @@ typedef struct DataObject{
 
 class TCClient {
     public:
-        TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, Data *dataReg);
+        TCClient(const char *ssid, const char *wifiPassword, const char *serverAddress, Data *paramReg, int paramRegSize, Data *dataReg, int dataRegSize);
             
         void addParam(String name, void *ptrToParam, int type, int size);  
         
         void addData(String name, void *ptrToData, int type, int size); 
         
-        int postInitParamRegistry(int numParams);
+        int postInitParamRegistry();
 
-        int postInitDataRegistry(int numData);
+        int postInitDataRegistry();
         
         int postUpdateData(int dataRegIndex); 
         
@@ -70,10 +68,10 @@ class TCClient {
         HTTPClient http;
 
         Data *paramRegistry;
-        int paramRegIndex = 0;
+        int paramRegSize;
         
         Data *dataRegistry;
-        int dataRegIndex = 0;
+        int dataRegSize;
 
 };
 
