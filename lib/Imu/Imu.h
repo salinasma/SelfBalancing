@@ -17,24 +17,31 @@
 #define MOT_THR            (uint8_t)0x1F  // Motion detection threshold bits [7:0]
 #define MOT_DUR            (uint8_t)0x20  // Duration counter threshold for motion interrupt generation, 1 kHz rate, LSB = 1 ms
 #define MOT_DETECT_CTRL    (uint8_t)0x69
-#define INT_ENABLE         (uint8_t)0x38
 #define WHO_AM_I_MPU6050   (uint8_t)0x75 // Should return 0x68
+#define INT_CFG            (uint8_t)0x37
+#define INT_ENABLE         (uint8_t)0x38
 #define INT_STATUS         (uint8_t)0x3A
 
 class Imu {
     public:
         Imu (int interruptPin);
+        
+        void ackInterrupt (void);
 
-        int getXDisplacement (void);
-        int getYDisplacement (void);
-        int getZDisplacement (void);
+        int getXRotation (void);
+        int getYRotation (void);
+        int getZRotation (void);
 
         int getXAcceleration (void);
         int getYAcceleration (void);
         int getZAcceleration (void);
+
+        void getAllData (int *imuData);
+
+        static void writeByte (uint8_t address, uint8_t subAddress, uint8_t data);
+        static uint8_t readByte (uint8_t regAddress);
         
     private:
-        static void writeByte (uint8_t address, uint8_t subAddress, uint8_t data);
 
 //        int gyroX, gyroY, gyroZ;
 //        int accelX, accelY, accelZ;

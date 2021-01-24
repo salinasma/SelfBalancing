@@ -50,7 +50,7 @@ int TCClient::postInitParamRegistry() {
     }
     jsonCmd += "}";
 
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -78,7 +78,7 @@ int TCClient::postInitDataRegistry() {
     }
     jsonCmd += "}";
 
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -96,7 +96,7 @@ int TCClient::postUpdateData(int dataRegIndex) {
     jsonCmd += "\", \"value\":\"" + String(*((int *)(d.dataPtr)));
     jsonCmd += "\"}";
     
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -113,7 +113,7 @@ int TCClient::postGetParam(int paramRegIndex) {
     jsonCmd += "\"name\":\"" + (String)p.dataName;
     jsonCmd += "\"}";
 
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -126,7 +126,7 @@ int TCClient::postGetParams() {
     int httpCode;
     String jsonCmd("{\"function\":\"botGetParams\"}");
 
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
 
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -139,7 +139,7 @@ int TCClient::postRxCmd() {
     int httpCode;
     String jsonCmd("{\"function\":\"botRxCmd\"}");
 
-    Serial.println(jsonCmd);
+    //Serial.println(jsonCmd);
     
     http.addHeader("Content-Type", "application/json");
     httpCode = http.POST(jsonCmd);
@@ -162,11 +162,11 @@ void TCClient::parseJSONResponse(int httpCode, int postCmdId) {
 
     // httpCode will be negative on error
     if (httpCode > 0) {
-        Serial.printf("[HTTP] POST... code: %d\n", httpCode);
+        //Serial.printf("[HTTP] POST... code: %d\n", httpCode);
     
         if (httpCode == HTTP_CODE_OK) {
             payload = http.getString();
-            Serial.println(payload);
+            //Serial.println(payload);
         }
         
         deserializeJson(jsonDoc, payload);
@@ -185,7 +185,7 @@ void TCClient::parseJSONResponse(int httpCode, int postCmdId) {
                   int index = String(it->key().c_str()).toInt();
                   int value = it->value().as<signed int>();
 
-                  Serial.println(index + ": " + value);
+                  //Serial.println(index + ": " + value);
 
                   switch (paramRegistry[index].dataType) {
                       case INT:
@@ -216,7 +216,7 @@ void TCClient::parseJSONResponse(int httpCode, int postCmdId) {
         };
 
     } else {
-        Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+        //Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
     }
 }
 

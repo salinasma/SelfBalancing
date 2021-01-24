@@ -32,11 +32,11 @@ Motor::Motor (int pwmAPin, int pwmBPin) {
     timerSelector++;
 }
 
-void Motor::rotate (int pwmVal) {
+void Motor::rotatePwm (int pwmVal) {
 
-    if (pwmVal == 0) {
-        digitalWrite (pwmA, 0);  
-        digitalWrite (pwmB, 0);  
+    if (pwmVal <= 10 && pwmVal >= -10) {
+        digitalWrite (pwmB, 0);
+        ledcWrite (pwmChannelA, 10);
 
         return;
     }

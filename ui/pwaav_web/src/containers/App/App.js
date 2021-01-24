@@ -15,7 +15,7 @@ class App extends Component {
         super(props);
         this.state = {
             state: null,
-            address: "",
+            address: "ipAddress, put yours here",
             dataVals: {},       
             paramVals: {},       
             paramTypes: {},       
