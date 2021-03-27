@@ -18,46 +18,42 @@ volatile int MotorL::tachBSampleCount = 0;
 volatile int MotorL::tachLogger[TACH_LOGGER_SIZE] = {0};
 volatile int MotorL::tachLoggerIndex = 0;
 
-hw_timer_t *MotorL::tachSamplingTimer;
-static int lastTime = 0;
-float lastPosition = 0;
-float lastVelocity = 0;
+volatile int MotorL::stopMotor = 0;
+volatile int MotorL::degrees = 0;
 
+volatile int MotorL::tachA = 0;
+volatile int MotorL::tachB = 0;
 
-float timeStep;
-// static MotorL::MotorL MLeft;
-// MotorL::MotorL getMLeft(void ){
-//     reutrn  MLeft;
-// } 
-// MotorL::MotorL (int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSampleInterval, controlMode mode)
-MotorL::MotorL(int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSampleInterval)
-    : Motor{pwmAPin, pwmBPin}
-{
-    pinMode(tachAPin, INPUT);
-    pinMode(tachBPin, INPUT);
+volatile uint8_t MotorL::fbState[2] = {0, 0}; // forward/backward state machine {a, b}
+volatile uint8_t MotorL::fbOutput[2] = {1, 1}; // forward/backward state machine output {e, f}
+volatile uint8_t MotorL::fbStateInit = 0;
 
+volatile uint8_t MotorL::tachAlive = 0;
+hw_timer_t* MotorL::tachSamplingTimer;
 
-    a_pin = tachAPin;
-    b_pin = tachBPin;
-    timeStep =  (float) tachSampleInterval;
+MotorL::MotorL (int pwmAPin, int pwmBPin, int tachAPin, int tachBPin, int tachSampleInterval) 
+: Motor {pwmAPin, pwmBPin} {
+  pinMode (tachAPin, INPUT);
+  pinMode (tachBPin, INPUT);
 
-    tachSamplingTimer = timerBegin(timerId, 80, true); // each timer tick is 1 us
+  tachA = tachAPin;
+  tachB = tachBPin;
 
-    // put interrupt and noInterrupt around all the init code
-    noInterrupts();
+//  Serial.begin (9600);
+  
+  tachSamplingTimer = timerBegin (timerId, 80, true); // each timer tick is 1 us
 
-    attachInterrupt(digitalPinToInterrupt(tachAPin), tachAInterruptHandler, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(tachBPin), tachBInterruptHandler, CHANGE);
+  // put interrupt and noInterrupt around all the init code
+  noInterrupts ();
 
-    // attachInterrupt(digitalPinToInterrupt(tachAPin), tachAInterruptHandler, RISING);
-    // attachInterrupt(digitalPinToInterrupt(tachBPin), tachBInterruptHandler, RISING);
+      attachInterrupt (digitalPinToInterrupt (tachAPin), tachAInterruptHandler, CHANGE);
+      attachInterrupt (digitalPinToInterrupt (tachBPin), tachBInterruptHandler, CHANGE);
+    
+      timerAttachInterrupt (tachSamplingTimer, &tachSamplingTimerInterrupt, true);
+      timerAlarmWrite (tachSamplingTimer, tachSampleInterval, true);
+      timerAlarmEnable (tachSamplingTimer);
 
-    timerAttachInterrupt(tachSamplingTimer, &tachSamplingTimerInterrupt, true);
-
-    timerAlarmWrite(tachSamplingTimer, tachSampleInterval, true);
-    timerAlarmEnable(tachSamplingTimer);
-
-    interrupts();
+  interrupts ();
 }
 
 int MotorL::getInstPeriodA(void)
@@ -80,91 +76,138 @@ int MotorL::getAvgPeriodB(void)
     return avgPeriodB;
 }
 
-State MotorL::getMotorState(void)
-{
-    return motorState;
+void MotorL::rotateDegrees (int degreesToRotate) {
+    degrees = degreesToRotate;
+
+    return;
 }
 
-// void MotorL::init(void)  {
+void IRAM_ATTR MotorL::tachAInterruptHandler (void) {
+    static int lastTime = micros();
+    static int tickCount = 0;
+    static int rotationCount = 0;
+    static int degreesTickCount = 0;
 
-// }
-
-MotorL::FSM_state FSM[4] = {
-    {{MotorL::Stopped, MotorL::Backwards, MotorL::Forwards, MotorL::Invalid}, {0, 1, 2, 0}}, // 00
-    {{MotorL::Forwards, MotorL::Stopped, MotorL::Invalid, MotorL::Backwards}, {0, 1, 1, 3}}, // 01
-    {{MotorL::Backwards, MotorL::Invalid, MotorL::Stopped, MotorL::Forwards}, {0, 2, 2, 3}}, // 10
-    {{MotorL::Invalid, MotorL::Forwards, MotorL::Backwards, MotorL::Stopped}, {3, 1, 2, 3}}  // 11
-};
-
-void posCode()
-{
-    int a = digitalRead(a_pin);
-    int b = digitalRead(b_pin);
-    int input = (a * 2) + b;
-    int output = FSM[FSM_current_state].out[input];
-
-
-    FSM_current_state = FSM[FSM_current_state].next[input];
-    switch (output)
-    {
-    case MotorL::Stopped:
-        break;
-    case MotorL::Forwards:
-        motorState.fw++;
-        motorState.position += STEP_SIZE_cm;
-        break;
-    case MotorL::Backwards:
-        motorState.position -= STEP_SIZE_cm;
-        motorState.bw++;
-        break;
-    default:
-        motorState.invalidCount++;
-        break;
-    }
-}
-
-void IRAM_ATTR MotorL::tachAInterruptHandler(void)
-{
-    static int lastTime = 0;
     int currentTime;
 
-    noInterrupts();
+        // detect forward/backward rotation
+        uint8_t fbInputA = digitalRead(tachA) & 0x01;
+        uint8_t fbInputB = digitalRead(tachB) & 0x01;
 
-    // set to some timer's current val
-    currentTime = micros();
+        if (!fbStateInit) {
+            fbState[0] = fbInputA;
+            fbState[1] = fbInputB;
+            fbStateInit = 1;
+        }
+       
+        // e 
+        fbOutput[0] = (!fbState[1] && !fbInputA) || (!fbState[0] && fbInputB) || (fbState[1] && fbInputA) || (fbState[0] && !fbInputB);
+        // f 
+        fbOutput[1] = (!fbState[0] && !fbInputB) || (fbState[1] && !fbInputB) || (fbState[0] && fbInputB) || (!fbState[1] && fbInputA);
+        fbState[0] = fbInputA;
+        fbState[1] = fbInputB;
+  
+    // count ticks only on rising edge interrupt
+    if (digitalRead(tachA)) {
+        tachAlive = 1;
 
-    instPeriodA = currentTime - lastTime;
-    tachAAggr += instPeriodA;
-    tachASampleCount++;
-
-    lastTime = currentTime;
-    posCode();
-
-    interrupts();
+        noInterrupts ();
+            tickCount++;
+            degreesTickCount++;
+        interrupts ();
+    
+            // measure shaft speed
+            if (tickCount == TICKS_PER_ROTATION_WHEEL) {
+                currentTime = micros();
+        
+                instPeriodA = currentTime - lastTime; 
+                tachAAggr += instPeriodA;
+                tachASampleCount++;
+        
+                lastTime = currentTime;
+                
+                tickCount = 0;
+            }
+    
+            // measure shaft rotation
+//            if (degreesTickCount * DEG_PER_TICK_WHEEL >= degrees) {
+//               degreesTickCount = 0; 
+//               stopMotor = 1;
+//            }
+    }
 
     return;
 }
 
-void IRAM_ATTR MotorL::tachBInterruptHandler(void)
-{
-    static int lastTime = 0;
-    // set to some timer's current val
+void IRAM_ATTR MotorL::tachBInterruptHandler(void) {
+    static int lastTime = micros();
+    static int tickCount = 0;
+    static int rotationCount = 0;
 
-    noInterrupts();
+    int currentTime;
+         
+    // detect forward/backward rotation
+    uint8_t fbInputA = digitalRead(tachA) & 0x01;
+    uint8_t fbInputB = digitalRead(tachB) & 0x01;
 
-    int currentTime = micros();
+    if (!fbStateInit) {
+        fbState[0] = fbInputA;
+        fbState[1] = fbInputB;
+        fbStateInit = 1;
+    }
+    
+    // e 
+    fbOutput[0] = (!fbState[1] && !fbInputA) || (!fbState[0] && fbInputB) || (fbState[1] && fbInputA) || (fbState[0] && !fbInputB);
+    // f 
+    fbOutput[1] = (!fbState[0] && !fbInputB) || (fbState[1] && !fbInputB) || (fbState[0] && fbInputB) || (!fbState[1] && fbInputA);
+    fbState[0] = fbInputA;
+    fbState[1] = fbInputB;
+  
 
-    instPeriodB = currentTime - lastTime;
-    tachBAggr += instPeriodB;
-    tachBSampleCount++;
+    // count ticks only on rising edge interrupt
+    if (digitalRead(tachB)) {
+        tickCount++;
 
-    lastTime = currentTime;
+        if (tickCount == 12) {
+            currentTime = micros();
 
-    posCode();
+            instPeriodB = currentTime - lastTime; 
+//            tachBAggr += instPeriodB;
+//            tachBSampleCount++;
 
-    interrupts();
-
+            lastTime = currentTime;
+            
+            tickCount = 0;
+        }
+    }
+  
     return;
+}
+
+void IRAM_ATTR MotorL::tachSamplingTimerInterrupt (){
+//    if (tachASampleCount != 0) {
+//        avgPeriodA = tachAAggr / tachASampleCount;
+//        tachAAggr = 0;
+//        tachASampleCount = 0;
+//
+//        tachLoggerIndex++;
+//        if (tachLoggerIndex < TACH_LOGGER_SIZE) {
+//            tachLogger[tachLoggerIndex] = avgPeriodA;
+//        }
+//    }
+//
+//    if (tachBSampleCount != 0) {
+//        avgPeriodB = tachBAggr / tachBSampleCount;
+//        tachBAggr = 0;
+//        tachBSampleCount = 0;
+//    }
+//
+    if (tachAlive) {
+        tachAlive = 0;
+        return;
+    }
+
+    instPeriodA = 0;
 }
 
 void IRAM_ATTR MotorL::tachSamplingTimerInterrupt()

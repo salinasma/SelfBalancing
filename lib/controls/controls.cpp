@@ -1,12 +1,14 @@
 #include "controls.hpp"
 
-    Controls:: Controls (double kp, double ki, double kd, ControlType loopType, int lowLimit, int highLimit) {
+    Controls:: Controls (double kp, double ki, double kd, ControlType loopType, int inputLowLimit, int inputHighLimit, int outputLowLimit, int outputHighLimit) {
             this->kP = kp;
             this->kI = ki;
             this->kD = kd;
             this->loopType = loopType;
-            this->lowerLimit = lowLimit;
-            this->upperLimit = highLimit;
+            this->inputLowerLimit = inputLowLimit;
+            this->inputUpperLimit = inputHighLimit;
+            this->outputLowerLimit = outputLowLimit;
+            this->outputUpperLimit = outputHighLimit;
     }
 
     int Controls::controlWorkLoop(int currentReading, int targetPosition)
@@ -47,14 +49,14 @@
 
         this->lastError = error;
 
-        if ( controlValue > this->upperLimit)
-            controlValue = this->upperLimit;
+        if ( controlValue > this->inputUpperLimit)
+            controlValue = this->inputUpperLimit;
 
-        if ( controlValue < this->lowerLimit )
-            controlValue = this->lowerLimit;
-
-
+        if ( controlValue < this->inputLowerLimit )
+            controlValue = this->inputLowerLimit;
 
 
-        return map(controlValue, this->lowerLimit, this->upperLimit, this->outputLowerLimit , this->outputUpperLimit);
+
+
+        return map(controlValue, this->inputLowerLimit, this->inputUpperLimit, this->outputLowerLimit , this->outputUpperLimit);
     }

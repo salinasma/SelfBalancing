@@ -7,18 +7,20 @@
 
 Imu::Imu (int interruptPin) {
     intPin = interruptPin;
-    pinMode (intPin, INPUT_PULLUP);
+//    pinMode (intPin, INPUT);
 
     Wire.begin ();    
+//    writeByte (MPU6050_ADDRESS, PWR_MGMT_1_REG, 0x80);      // Reset imu
     writeByte (MPU6050_ADDRESS, PWR_MGMT_1_REG, 0x00);      // Wake up imu
-//    writeByte( MPU6050_ADDRESS, SIGNAL_PATH_RESET, 0x07);   // Reset all internal signal paths in the MPU-6050 by writing 0x07 to register 0x68;
-//    writeByte( MPU6050_ADDRESS, I2C_SLV0_ADDR, 0x20);       // Write register 0x37 to select how to use the interrupt pin. For an active high, push-pull signal that stays until register (decimal) 58 is read, write 0x20.
-//    writeByte( MPU6050_ADDRESS, ACCEL_CONFIG, 0x01);        // Write register 28 (==0x1C) to set the Digital High Pass Filter, bits 3:0. For example set it to 0x01 for 5Hz. (These 3 bits are grey in the data sheet, but they are used! Leaving them 0 means the filter always outputs 0.)
-//    writeByte( MPU6050_ADDRESS, MOT_THR, 20);               // Write the desired Motion threshold to register 0x1F (For example, write decimal 20).  
-//    writeByte( MPU6050_ADDRESS, MOT_DUR, 40 );              // Set motion detect duration to 1  ms; LSB is 1 ms @ 1 kHz rate  
-//    writeByte( MPU6050_ADDRESS, MOT_DETECT_CTRL, 0x15);     // To register 0x69, write the motion detection decrement and a few other settings (for example write 0x15 to set both free-fall and motion decrements to 1 and accelerometer start-up delay to 5ms total by adding 1ms. )   
-//    writeByte( MPU6050_ADDRESS, INT_ENABLE, 0x40 );         // Write register 0x38, bit 6 (0x40), to enable motion detection interrupt.     
-//    writeByte( MPU6050_ADDRESS, 0x37, 160 );                // Now INT pin is active low
+//    writeByte(MPU6050_ADDRESS, SIGNAL_PATH_RESET, 0x07);  // Reset all internal signal paths in the MPU-6050 by writing 0x07 to register 0x68;
+//    writeByte(MPU6050_ADDRESS, I2C_SLV0_ADDR, 0x20);      // Write register 0x37 to select how to use the interrupt pin. For an active high, push-pull signal that stays until register (decimal) 58 is read, write 0x20.
+//    writeByte(MPU6050_ADDRESS, ACCEL_CONFIG, 0x01);       // Write register 28 (==0x1C) to set the Digital High Pass Filter, bits 3:0. For example set it to 0x01 for 5Hz. (These 3 bits are grey in the data sheet, but they are used! Leaving them 0 means the filter always outputs 0.)
+//    writeByte(MPU6050_ADDRESS, MOT_THR, 20);              // Write the desired Motion threshold to register 0x1F (For example, write decimal 20).  
+//    writeByte(MPU6050_ADDRESS, MOT_DUR, 40);              // Set motion detect duration to 1  ms; LSB is 1 ms @ 1 kHz rate  
+//    writeByte(MPU6050_ADDRESS, MOT_DETECT_CTRL, 0x15);    // To register 0x69, write the motion detection decrement and a few other settings (for example write 0x15 to set both free-fall and motion decrements to 1 and accelerometer start-up delay to 5ms total by adding 1ms. )   
+//    writeByte(MPU6050_ADDRESS, INT_ENABLE, 0x40);         // Write register 0x38, bit 6 (0x40), to enable motion detection interrupt.     
+ //   writeByte(MPU6050_ADDRESS, INT_CFG, 0xA0);             // Active low INT pin
+//    writeByte(MPU6050_ADDRESS, INT_ENABLE, 0x01);         // Enable data-ready interrupt
 }
 
 void Imu::writeByte (uint8_t address, uint8_t subAddress, uint8_t data) {
@@ -28,15 +30,45 @@ void Imu::writeByte (uint8_t address, uint8_t subAddress, uint8_t data) {
     Wire.endTransmission ();
 }
 
-int Imu::getXDisplacement (void) { 
+uint8_t Imu::readByte (uint8_t regAddress) { 
+    Wire.beginTransmission (MPU6050_ADDRESS);
+    Wire.write (regAddress);
+    Wire.endTransmission (false);
+    Wire.requestFrom ((uint16_t)MPU6050_ADDRESS, (uint8_t)1, true);
+    return Wire.read();
+}
+
+void Imu::ackInterrupt (void) { 
+    Wire.beginTransmission (MPU6050_ADDRESS);
+    Wire.write (INT_STATUS);
+    Wire.endTransmission (false);
+    Wire.requestFrom ((uint16_t)MPU6050_ADDRESS, (uint8_t)1, true);
+    Wire.read();
+}
+
+void Imu::getAllData (int *imuData) { 
+    Wire.beginTransmission (MPU6050_ADDRESS);
+    Wire.write (0x3B);
+    Wire.endTransmission (false);
+    Wire.requestFrom ((uint16_t)MPU6050_ADDRESS, (uint8_t)14, true); // high and low registers
+    imuData[0] = Wire.read () << 8 | Wire.read ();
+    imuData[1] = Wire.read () << 8 | Wire.read ();
+    imuData[2] = Wire.read () << 8 | Wire.read ();
+    imuData[3] = Wire.read () << 8 | Wire.read ();
+    imuData[4] = Wire.read () << 8 | Wire.read ();
+    imuData[5] = Wire.read () << 8 | Wire.read ();
+    imuData[6] = Wire.read () << 8 | Wire.read ();
+}
+
+int Imu::getXRotation (void) { 
     Wire.beginTransmission (MPU6050_ADDRESS);
     Wire.write (0x43);
     Wire.endTransmission (false);
-    Wire.requestFrom ((uint16_t)MPU6050_ADDRESS, (uint8_t)2, true);
+    Wire.requestFrom ((uint16_t)MPU6050_ADDRESS, (uint8_t)2, true); // high and low registers
     return (Wire.read () << 8 | Wire.read ());
 }
 
-int Imu::getYDisplacement (void) { 
+int Imu::getYRotation (void) { 
     Wire.beginTransmission (MPU6050_ADDRESS);
     Wire.write (0x45);
     Wire.endTransmission (false);
@@ -44,7 +76,7 @@ int Imu::getYDisplacement (void) {
     return (Wire.read () << 8 | Wire.read ());
 }
 
-int Imu::getZDisplacement (void) { 
+int Imu::getZRotation (void) { 
     Wire.beginTransmission (MPU6050_ADDRESS);
     Wire.write (0x47);
     Wire.endTransmission (false);

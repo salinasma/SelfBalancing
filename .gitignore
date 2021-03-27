@@ -1,2 +1,10 @@
+pcb/
+model/
+sim/
 env/
+CHEP*/
+ender3*/
 __pycache__/*
+.gitignore
+*.txt
+*.pdf

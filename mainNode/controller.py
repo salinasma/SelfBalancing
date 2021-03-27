@@ -1,22 +1,64 @@
-
 from endpoints import Controller
-# import Backend 
+
 import json
 from json import JSONEncoder
 from enum import Enum
 
-class Active(Enum):
-  stop = 0
-  run = 1
+class RobotState():
+    def __init__(self, name, value, index, pType, size):
+        self.paramNames = {name : name} 
+        self.paramVals = {name : value} 
+        self.paramIndexes = {name : index} 
+        self.paramTypes = {name : pType} 
+        self.paramSizes = {name : size} 
 
-class Mode(Enum):
-  pwm = 0
-  position = 1
-  velocity = 2
+        self.dataNames = {name : name} 
+        self.dataVals = {name : value} 
+        self.dataIndexes = {name : index} 
+        self.dataTypes = {name : pType} 
+        self.dataSizes = {name : size} 
 
-lastestUpdate = None
-params =  { "running": 0, "mode": 0, "PWMDuty": 0 }
+        self.cmdQ = []
+        self.paramUpdateQ = []
+        
+    def addParam(self, name, value, index, pType, size):
+        self.paramNames.update({name : name}) 
+        self.paramVals.update({name : value}) 
+        self.paramIndexes.update({name : index}) 
+        self.paramTypes.update({name : pType}) 
+        self.paramSizes.update({name : size}) 
 
+    def addData(self, name, value, index, pType, size):
+        self.dataNames.update({name : name})
+        self.dataVals.update({name : value}) 
+        self.dataIndexes.update({name : index})
+        self.dataTypes.update({name : pType}) 
+        self.dataSizes.update({name : size}) 
+
+    def updateParamVal(self, name, value):
+        self.paramVals.update({name : value}) 
+
+    def updateParamQ(self, name, value):
+        self.paramUpdateQ.append((name, value))
+
+    def getParamUpdate(self):
+        return self.paramUpdateQ.pop(0)
+
+    def checkParamUpdateQ(self):
+        if len(self.paramUpdateQ) > 0:
+            return 1
+        return 0
+
+    def updateDataVal(self, name, value):
+        self.dataVals.update({name : value}) 
+
+    def txCmd(self, cmd):
+        self.cmdQ.append(cmd) 
+
+    def rxCmd(self):
+        return json.dump({"cmd": self.cmdQ.pop(0)})
+
+registry = RobotState("example", 42, -1, 0, 4) # The 0 indicates type INT
 
 class Default(Controller):
   def GET(self):
@@ -24,42 +66,52 @@ class Default(Controller):
 
   def POST(self, **kwargs):
     function = kwargs["function"]
-    # args = kwargs["args"]
 
-    if "get_params" in function or "GET_PARAMS" in function:
-      return params
+    if "botInitParams" in function:
+        for i in range(0, int(kwargs["numParams"])):
+            registry.addParam(kwargs["p" + str(i)]["name"], (int)(kwargs["p" + str(i)]["value"]), kwargs["p" + str(i)]["index"], kwargs["p" + str(i)]["type"], kwargs["p" + str(i)]["size"])
 
-    if "set_mosi" in function or "SET_MOSI" in function:
-      print(kwargs["args"])
-      if kwargs["args"]["running"]:
-        params["running"] =  1
+        return registry.paramVals
 
-      else:
-        params["running"] =  0
+    if "botGetParams" in function:
+        newParamVals = {}
+        while len(registry.paramUpdateQ) > 0:
+                param = registry.getParamUpdate()
+                paramName = param[0]
+                paramValue = param[1]
+                newParamVals.update({registry.paramIndexes[paramName]: paramValue})
 
-      return params
+        return dict(zip(newParamVals.keys(), newParamVals.values()))
 
+    if "botInitData" in function:
+        for i in range(0, int(kwargs["numData"])):
+          registry.addData(kwargs["d" + str(i)]["name"], kwargs["d" + str(i)]["value"], kwargs["d" + str(i)]["index"], kwargs["d" + str(i)]["type"], kwargs["d" + str(i)]["size"])
 
+        return registry.dataVals
 
-    if "check_running" in function or "CHECK_RUNNING" in function:
-      if params["running"] is 0:
-        return "eslaf"
-      else:
-        return  "eurt"
+    if "botUpdateData" in function:
+        registry.updateDataVal(kwargs["name"], kwargs["value"])
 
-    if "miso" in function or "MISO" in function:
-      return params
+        return registry.dataVals
 
-    if "MOSI" in function or "MOSI" in function:
-      return params
+    if "botRxCmd" in function:
+        return json.dumps({"cmd": registry.rxCmd()})
 
+    if "uiGetParams" in function:
+        tempDict = {}
+        for key in registry.paramVals.keys():
+            tempDict.update({key: {"value": registry.paramVals[key], "dataType": registry.paramTypes[key]}})
 
-    if "setParams_params" in function or "GET_PARAMS" in function:
-      # backend.add(args)
-      # backend.commit()
-      return lastestUpdate
+        return  tempDict 
 
-    if "check_latest_change" in function or "CHECK_LATEST_CHANGE" in function:
-      return lastestUpdate
- 
+    if "uiUpdateParam" in function:
+        registry.updateParamQ(kwargs["name"], kwargs["value"])
+
+        return registry.paramUpdateQ
+
+    if "uiGetData" in function:
+        return registry.dataVals
+
+    if "uiTxCmd" in function:
+        registry.txCmd(kwargs["cmd"])
       
