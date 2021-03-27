@@ -1,0 +1,36 @@
+{
+  "env": {
+    "myDefaultIncludePath": ["${workspaceFolder}"]
+    // "myDefaultIncludePath": ["${workspaceFolder}", "${workspaceFolder}/include"],
+    // "myCompilerPath": "/usr/local/bin/gcc-7"
+  },
+  "configurations": [
+    {
+      "name": "Mac",
+      "includePath": [
+        "${myDefaultIncludePath}", 
+        "/home/apptronik/esp/esp-idf/components/**" //, 
+        // "/home/apptronik/esp/esp-idf/components/freertos/include", 
+        // "/home/apptronik/esp/esp-idf/components/newlib/include", 
+        // "/home/apptronik/esp/esp-idf/components/driver/include"
+      ],
+      // "includePath": ["${myDefaultIncludePath}", "${IDF_PATH}/components/freertos/include", "${IDF_PATH}/components/newlib/include"],
+      // "includePath": ["${myDefaultIncludePath}", "${IDF_PATH}/components/freertos/include", "${IDF_PATH}/components/newlib/include"],
+      // "includePath": ["${myDefaultIncludePath}", "/home/apptronik/esp/esp-idf/components/freertos/include", "${IDF_PATH}/components/newlib/include"],
+      // "includePath": ["${myDefaultIncludePath}", "%{IDF_PATH}/components/freertos/include"],
+      "defines": ["FOO", "BAR=100"],
+      // "forcedInclude": ["${workspaceFolder}/include/config.h"],
+      // "compilerPath": "/usr/bin/clang",
+      // "cStandard": "c11",
+      // "cppStandard": "c++17",
+      // "compileCommands": "/path/to/compile_commands.json",
+      "browse": {
+        "path": ["${workspaceFolder}"],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": ""
+      }
+    }
+  ],
+  "version": 4
+}
+
