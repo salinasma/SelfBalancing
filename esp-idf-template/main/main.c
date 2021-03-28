@@ -7,6 +7,10 @@
 
 #include "esp_timer.h"
 
+#include "driver/mcpwm.h"
+#include "soc/mcpwm_reg.h"
+#include "soc/mcpwm_struct.h"
+
 #define RIGHT_TACH1 18
 #define RIGHT_TACH2 19
 
@@ -18,6 +22,13 @@
 
 
 #define GPIO_INPUT_PIN_SEL  ((1ULL<<RIGHT_TACH1) | (1ULL<<RIGHT_TACH2) | (1ULL<<LEFT_TACH1) | (1ULL<<LEFT_TACH2))
+
+#define RIGHT_PWM 26   //Set GPIO 15 as PWM0A
+#define RIGHT_MOTOR_ENABLE 27   //Set GPIO 16 as PWM0B
+
+#define LEFT_PWM 25   //Set GPIO 15 as PWM0A
+#define LEFT_MOTOR_ENABLE 33   //Set GPIO 16 as PWM0B
+
 
 
 float right_position = 0 ;
@@ -69,10 +80,12 @@ float getPositionChange(int a, int b, int* FSM_current_state )
         case Stopped:
             break;
         case Forwards:
-            returnValue =  STEP_SIZE_mm;
+            returnValue =  1;
+            // returnValue =  STEP_SIZE_mm;
             break;
         case Backwards:
-            returnValue =   -1* STEP_SIZE_mm;
+            returnValue =   -1;
+            // returnValue =   -1* STEP_SIZE_mm;
             break;
         default:
             // motorState.invalidCount++;
@@ -136,6 +149,81 @@ void encoder_initialize(){
 
 }
 
+static void motor_set_pwm_right( float  duty_cycle ) {
+
+    mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A);
+
+    if (duty_cycle < 0) {
+        duty_cycle += -1;
+        gpio_set_level(RIGHT_MOTOR_ENABLE, 0);
+    }
+    else {
+        gpio_set_level(RIGHT_MOTOR_ENABLE, 1);
+    }
+
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, duty_cycle);
+    mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+
+    // mcpwm_set_signal_high(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A);
+    mcpwm_start(MCPWM_UNIT_0, MCPWM_TIMER_0);
+
+
+}
+
+static void motor_set_pwm_left( float duty_cycle) {
+
+    mcpwm_set_signal_low(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B);
+    if (duty_cycle < 0) {
+        duty_cycle += -1;
+        gpio_set_level(LEFT_MOTOR_ENABLE, 0);
+    }  else {
+        gpio_set_level(LEFT_MOTOR_ENABLE, 1);
+    }
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, duty_cycle);
+    mcpwm_set_duty_type(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_B, MCPWM_DUTY_MODE_0); //call this each time, if operator was previously in low/high state
+
+
+}
+
+
+
+static void PWM_initialize()
+{
+    printf("initializing mcpwm gpio...\n");
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, LEFT_PWM);
+    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, RIGHT_PWM);
+
+    gpio_config_t io_conf;
+    //disable interrupt
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = ((1ULL<<RIGHT_MOTOR_ENABLE) | (1ULL<<LEFT_MOTOR_ENABLE));
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+
+    mcpwm_config_t pwm_config;
+    pwm_config.frequency = 2000;    //frequency = 500Hz,
+    pwm_config.cmpr_a = 25;    //duty cycle of PWMxA = 0
+    pwm_config.cmpr_b = 75;    //duty cycle of PWMxb = 0
+    pwm_config.counter_mode = MCPWM_UP_COUNTER;
+    pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
+    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);    //Configure PWM0A & PWM0B with above settings
+
+
+}
+
+
+
+
+
+
+
 int newData = 0;
 void motorForeground() {
     float io_num;
@@ -163,7 +251,8 @@ void motorForeground() {
 int64_t currentTime = 0; 
 int64_t previousTime =  0;
 int64_t timeDiff =  0;
-#define SAMPLING_PERIOD 10000
+#define SAMPLING_PERIOD_MICRO_SEC 10000 // = 10 ms interrupt
+// #define SAMPLING_PERIOD_MICRO_SEC 10000 // = 10 ms interrupt
 
 typedef struct {
     float currentPos;
@@ -186,7 +275,8 @@ static void periodic_timer_callback(void* arg)
     previousTime = currentTime;
     state.prevPos = state.currentPos; 
     state.currentPos = getCurrentPos_right();
-    state.velocity = ( state.currentPos - state.prevPos ) ;// / ( timeDiff / 1000 ) ;
+    state.velocity = ( state.currentPos - state.prevPos ) /10   ;
+    // state.velocity = ( state.currentPos - state.prevPos )  / (timeDiff/ 100)   ;
     // state.velocity = ( state.currentPos - state.prevPos )  / ( timeDiff / 1000 ) ;
 
 
@@ -208,26 +298,43 @@ void timer_initialize() {
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     /* The timer has been created but is not running yet */
 
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, SAMPLING_PERIOD));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, SAMPLING_PERIOD_MICRO_SEC));
     // ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1000));
 
 }
-
+int everySec = 0;
+float pwmDuty = 0;
 void run_robot(void* arg ) {
     encoder_initialize();
+    PWM_initialize();
     timer_initialize();
 
     right_position = 0;
     left_position = 0;
+    motor_set_pwm_left( 100 );
+    motor_set_pwm_right( 100 );
+
+    gpio_set_level(RIGHT_MOTOR_ENABLE, 1);
     while (1) {
         motorForeground() ;
         if (newData){
             // printf("Left_Position: %f, Right_Position: %f, Right_vel: %f, Right_pos_diff: %f\n", 
-            printf("Right_pos_cm: %f, Right_pos_prev_cm: %f, Right_vel: %f\n", 
-                state.currentPos,
-                state.prevPos,
+            printf("Right_vel: %f\n", 
+            // printf("Right_pos_cm: %f, Right_pos_prev_cm: %f, Right_vel: %f\n", 
+                // state.currentPos,
+                // state.prevPos,
                 state.velocity
                 );
+                everySec++;
+                if (everySec > 10)  {
+                    everySec = 0;
+                    pwmDuty += 1;
+                    if (pwmDuty > 99) {
+                        pwmDuty = 30;
+                    }
+
+                    motor_set_pwm_right( pwmDuty );
+                }
 
             newData = 0;
 
